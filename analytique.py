@@ -1,5 +1,6 @@
 from copy import deepcopy
 from matplotlib.widgets import Slider, Button
+from numpy.typing import NDArray
 from scipy.special import gamma
 from scipy.special import jv
 import matplotlib.gridspec as gridspec
@@ -7,7 +8,22 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def conditionsFinales(a0, alpha, beta, delta_v, n_max):
+def conditionsFinales(a0: list, alpha: float|complex, beta: float, delta_v: float, n_max: int) -> None:
+    """
+    Calcule les conditions finales à partir des conditions
+    initiales et ajoute le résultat au vecteur a0
+
+    Params:
+        a0: Vecteur des conditions initales
+        alpha: alpha
+        beta: beta
+        delta_v: delta*v
+        n_max: Nombre de termes à sommer
+
+    Retourne:
+        Rien, mais ajouter les conditions finales à a0
+    """
+    # Calcul pour t<0
     M_11 = M11(0, alpha, beta, delta_v, n_max)[0]
     M_12 = M12(0, alpha, beta, delta_v, n_max)[0]
     M_21 = M21(0, alpha, beta, delta_v, n_max)[0]
@@ -15,6 +31,7 @@ def conditionsFinales(a0, alpha, beta, delta_v, n_max):
 
     M_moins = np.array([[M_11, M_12], [M_21, M_22]])
 
+    # Calcul pour t>0
     M_11 = M11(0, alpha, beta, -delta_v, n_max)[0]
     M_12 = M12(0, alpha, beta, -delta_v, n_max)[0]
     M_21 = M21(0, alpha, beta, -delta_v, n_max)[0]
@@ -22,16 +39,34 @@ def conditionsFinales(a0, alpha, beta, delta_v, n_max):
 
     M_plus = np.array([[M_11, M_12], [M_21, M_22]])
 
+    # Calcul des conditions finales
     M = np.matmul(np.linalg.inv(M_plus), M_moins)
     a_inf = np.matmul(M, a0)
 
+    # Ajout des conditions finales à l'array a0
     a0.extend(a_inf)
 
 
-def P2(a0, alpha, beta, delta_v, n_max):
+def P2(a0: list, alpha: float|complex, beta: float, delta_v: NDArray, n_max: int) -> NDArray:
+    """
+    Calcule P2(infty) en fonction de v
+
+    Params:
+        a0: Array des conditions initiales/initiales et finales
+        alpha: alpha
+        beta: beta
+        delta_v: Array des vitesses auxquelles évaluer P2(infty)
+        n_max: Nombre de termes à sommer
+
+    Retourne:
+        Array de P2(infty) évalué aux valeurs dans delta_v
+    """
+    # Crée l'array à retourner
     p2 = np.zeros(delta_v.size)
 
+    # Pour chaque valeur dans delta_v, calcule P2(infty)
     for i, v in enumerate(delta_v):
+        # Copie a0, puisque les conditions finales dépendent de v
         a0_copy = deepcopy(a0)
         conditionsFinales(a0_copy, alpha, beta, v, n_max)
         p2[i] = np.abs(a0_copy[3])**2
@@ -39,7 +74,22 @@ def P2(a0, alpha, beta, delta_v, n_max):
     return p2
 
 
-def M11(t, alpha, beta, delta_v, n_max):
+def M11(t: float|NDArray, alpha: float|complex, beta: float, delta_v: float, n_max: int) -> float|NDArray:
+    """
+    Calcule l'élément 11 de la matrice M
+
+    Params:
+        t: Float ou array de float qui représente les temps où évaluer M11
+        alpha: alpha
+        beta: beta
+        delta_v: delta*v
+        n_max: Nombre de termes à sommer
+
+    Retourne:
+        Si t est un float, un float, si t est un
+        array, un array de M11 évalué aux valeurs de t
+    """
+    # Notation étrange pour fonctionner avec un array de temps
     n = np.arange(n_max)
     tn = np.outer(t, n)
     arr = np.matmul(np.exp(2*delta_v*tn), (-1)**n * beta**(2*n) / ((2*delta_v)**(2*n) * gamma(n+1) * gamma(n + 1/2 - 1j * alpha/delta_v)))
@@ -47,11 +97,41 @@ def M11(t, alpha, beta, delta_v, n_max):
     return gamma(1/2 - 1j * alpha/delta_v) * arr
 
 
-def M22(t, alpha, beta, delta_v, n_max):
+def M22(t: float|NDArray, alpha: float|complex, beta: float, delta_v: float, n_max: int) -> float|NDArray:
+    """
+    Calcule l'élément 22 de la matrice M
+
+    Params:
+        t: Float ou array de float qui représente les temps où évaluer M22
+        alpha: alpha
+        beta: beta
+        delta_v: delta*v
+        n_max: Nombre de termes à sommer
+
+    Retourne:
+        Si t est un float, un float, si t est un
+        array, un array de M22 évalué aux valeurs de t
+    """
+    # Calcule M22 avec M11 en inversant a
     return M11(t, -alpha, beta, delta_v, n_max)
 
 
-def M21(t, alpha, beta, delta_v, n_max):
+def M21(t: float|NDArray, alpha: float|complex, beta: float, delta_v: float, n_max: int) -> float|NDArray:
+    """
+    Calcule l'élément 21 de la matrice M
+
+    Params:
+        t: Float ou array de float qui représente les temps où évaluer M21
+        alpha: alpha
+        beta: beta
+        delta_v: delta*v
+        n_max: Nombre de termes à sommer
+
+    Retourne:
+        Si t est un float, un float, si t est un
+        array, un array de M11 évalué aux valeurs de t
+    """
+    # Notation étrange pour fonctionner avec un array de temps
     n = np.arange(n_max)
     tn = np.outer(t, n)
     arr = np.matmul(np.exp(2*delta_v*tn), (-1)**n * beta**(2*n+1) / ((2*delta_v)**(2*n+1) * gamma(n+1) * gamma(n + 3/2 - 1j*alpha/delta_v)))
@@ -59,48 +139,119 @@ def M21(t, alpha, beta, delta_v, n_max):
     return -1j * np.exp((delta_v-2j*alpha)*t) * gamma(1/2 - 1j*alpha/delta_v) * arr
 
 
-def M12(t, alpha, beta, delta_v, n_max):
+def M12(t: float|NDArray, alpha: float|complex, beta: float, delta_v: float, n_max: int) -> float|NDArray:
+    """
+    Calcule l'élément 12 de la matrice M
+
+    Params:
+        t: Float ou array de float qui représente les temps où évaluer M12
+        alpha: alpha
+        beta: beta
+        delta_v: delta*v
+        n_max: Nombre de termes à sommer
+
+    Retourne:
+        Si t est un float, un float, si t est un
+        array, un array de M12 évalué aux valeurs de t
+    """
+    # Calcule M12 avec M21 en inversant a
     return M21(t, -alpha, beta, delta_v, n_max)
 
 
-def a1_prime(t, alpha, beta, delta_v, n_max, a0):
+def a1_prime(t: float|NDArray, alpha: float|complex, beta: float, delta_v: float, n_max: int, a0: list) -> float|NDArray:
+    """
+    Calcule a_1' aux temps donnés par t
+
+    Params:
+        t: Float ou array de float qui représente les temps où évaluer a_1'
+        alpha: alpha
+        beta: beta
+        delta_v: delta*v
+        n_max: Nombre de termes à sommer
+        a0: Vecteur de 2 ou 4 composantes contenant les conditions
+            initiales ou initiales et finales respectivement
+
+    Retourne:
+        Si t est un float, un float, si t est un
+        array, un array de a_1' évalué aux valeurs de t
+    """
+    # Si l'array contient seulement les conditions initiales, calculer les conditions finales
     if len(a0) == 2:
         conditionsFinales(a0, alpha, beta, delta_v, n_max)
 
+    # Si t<0, on utilise delta_v, si t>0, on utilise -delta_v
     neg = M11(t[t<=0], alpha, beta, delta_v, n_max) * a0[0] + M12(t[t<=0], alpha, beta, delta_v, n_max) * a0[1],
     pos = M11(t[t>0], alpha, beta, -delta_v, n_max) * a0[2] + M12(t[t>0], alpha, beta, -delta_v, n_max) * a0[3]
 
     return np.append(neg, pos)
 
 
-def a1(t, alpha, beta, delta_v, n_max, a0):
+def a1(t: float|NDArray, alpha: float|complex, beta: float, delta_v: float, n_max: int, a0: list) -> float|NDArray:
+    """
+    Calcule a_1 aux temps donnés par t
+
+    Params:
+        t: Float ou array de float qui représente les temps où évaluer a_1
+        alpha: alpha
+        beta: beta
+        delta_v: delta*v
+        n_max: Nombre de termes à sommer
+        a0: Vecteur de 2 ou 4 composantes contenant les conditions
+            initiales ou initiales et finales respectivement
+
+    Retourne:
+        Si t est un float, un float, si t est un
+        array, un array de a_1 évalué aux valeurs de t
+    """
     return np.exp(-1j*alpha*t) * a1_prime(t, alpha, beta, delta_v, n_max, a0)
 
 
-def a2_prime(t, alpha, beta, delta_v, n_max, a0):
+def a2_prime(t: float|NDArray, alpha: float|complex, beta: float, delta_v: float, n_max: int, a0: list) -> float|NDArray:
+    """
+    Calcule a_2' aux temps donnés par t
+
+    Params:
+        t: Float ou array de float qui représente les temps où évaluer a_2'
+        alpha: alpha
+        beta: beta
+        delta_v: delta*v
+        n_max: Nombre de termes à sommer
+        a0: Vecteur de 2 ou 4 composantes contenant les conditions
+            initiales ou initiales et finales respectivement
+
+    Retourne:
+        Si t est un float, un float, si t est un
+        array, un array de a_2' évalué aux valeurs de t
+    """
+    # Si l'array contient seulement les conditions initiales, calculer les conditions finales
     if len(a0) == 2:
         conditionsFinales(a0, alpha, beta, delta_v, n_max)
 
+    # Si t<0, on utilise delta_v, si t>0, on utilise -delta_v
     neg = M21(t[t<=0], alpha, beta, delta_v, n_max) * a0[0] + M22(t[t<=0], alpha, beta, delta_v, n_max) * a0[1]
     pos = M21(t[t>0], alpha, beta, -delta_v, n_max) * a0[2] + M22(t[t>0], alpha, beta, -delta_v, n_max) * a0[3]
 
     return np.append(neg, pos)
 
 
-def a2(t, alpha, beta, delta_v, n_max, a0):
+def a2(t: float|NDArray, alpha: float|complex, beta: float, delta_v: float, n_max: int, a0: list) -> float|NDArray:
+    """
+    Calcule a_2 aux temps donnés par t
+
+    Params:
+        t: Float ou array de float qui représente les temps où évaluer a_2
+        alpha: alpha
+        beta: beta
+        delta_v: delta*v
+        n_max: Nombre de termes à sommer
+        a0: Vecteur de 2 ou 4 composantes contenant les conditions
+            initiales ou initiales et finales respectivement
+
+    Retourne:
+        Si t est un float, un float, si t est un
+        array, un array de a_2 évalué aux valeurs de t
+    """
     return np.exp(1j*alpha*t) * a2_prime(t, alpha, beta, delta_v, n_max, a0)
-
-
-def a1_analytique(t, beta, delta_v, a0):
-    z = np.where(t <= 0, -beta * np.exp(delta_v*t) / delta_v, beta * (np.exp(-delta_v * t) - 2) / delta_v)
-
-    return np.cos(z) * a0[0] + 1j * np.sin(z) * a0[1]
-
-
-def a2_analytique(t, beta, delta_v, a0):
-    z = np.where(t <= 0, -beta * np.exp(delta_v*t) / delta_v, beta * (np.exp(-delta_v * t) - 2) / delta_v)
-
-    return 1j * np.sin(z) * a0[0] + np.cos(z) * a0[1]
 
 
 def main():
