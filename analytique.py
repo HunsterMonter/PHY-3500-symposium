@@ -1,3 +1,4 @@
+from copy import deepcopy
 from matplotlib.widgets import Slider, Button
 from scipy.special import gamma
 from scipy.special import jv
@@ -27,6 +28,17 @@ def conditionsFinales(a0, alpha, beta, delta_v, n_max):
     a0.extend(a_inf)
 
 
+def P2(a0, alpha, beta, delta_v, n_max):
+    p2 = np.zeros(delta_v.size)
+
+    for i, v in enumerate(delta_v):
+        a0_copy = deepcopy(a0)
+        conditionsFinales(a0_copy, alpha, beta, v, n_max)
+        p2[i] = np.abs(a0_copy[3])**2
+
+    return p2
+
+
 def M11(t, alpha, beta, delta_v, n_max):
     n = np.arange(n_max)
     tn = np.outer(t, n)
@@ -42,7 +54,7 @@ def M22(t, alpha, beta, delta_v, n_max):
 def M21(t, alpha, beta, delta_v, n_max):
     n = np.arange(n_max)
     tn = np.outer(t, n)
-    arr = np.matmul(np.exp(2*delta_v*tn), (-1)**n * beta**(2*n+1) / ((2*delta_v)**(2*n) * gamma(n+1) * ((2*n+1)*delta_v-2j*alpha) * gamma(n+1/2 - 1j*alpha/delta_v)))
+    arr = np.matmul(np.exp(2*delta_v*tn), (-1)**n * beta**(2*n+1) / ((2*delta_v)**(2*n+1) * gamma(n+1) * gamma(n + 3/2 - 1j*alpha/delta_v)))
     
     return -1j * np.exp((delta_v-2j*alpha)*t) * gamma(1/2 - 1j*alpha/delta_v) * arr
 

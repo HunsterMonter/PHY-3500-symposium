@@ -16,28 +16,6 @@ def a_dot_pos(u, a, alpha, beta, delta_v):
     return np.array([a1_dot, a2_dot])
 
 
-def RK2(u, a0, a_dot, alpha, beta, delta_v):
-    # Setup
-    # Taille et nombre de pas
-    h = u[1]-u[0]
-    steps = u.size
-
-    # Initialisation de a
-    a = np.zeros((steps, 2), dtype=complex)
-    a[0] = a0
-
-    # Boucle principale d'intégration
-    for i in range(1, steps):
-        u_half = u[i-1] + h/2
-
-        k1 = h * a_dot(u[i-1], a[i-1], alpha, beta, delta_v)
-        k2 = h * a_dot(u[i-1]+h/2, a[i-1]+k1/2, alpha, beta, delta_v)
-
-        a[i] = a[i-1] + k2
-
-    return a
-
-
 def RK4(u, a0, a_dot, alpha, beta, delta_v):
     # Setup
     # Taille et nombre de pas
@@ -62,7 +40,7 @@ def RK4(u, a0, a_dot, alpha, beta, delta_v):
     return a
 
 
-def a_num(steps, a0, alpha, beta, delta_v):
+def a_num(a0, alpha, beta, delta_v, steps):
     u_neg = np.linspace (-1, 0, steps+1)
     u_pos = np.linspace (0, 1, steps+1)
     #a_neg_1 = 
@@ -84,8 +62,32 @@ def a_num(steps, a0, alpha, beta, delta_v):
     return a
 
 
+def P2(a0, alpha, beta, delta_v, steps):
+    p2 = np.zeros(delta_v.size)
+
+    for i, v in enumerate(delta_v):
+        a1 = a_num(a0, alpha, beta, v, steps)[1][-1]
+        a2 = a_num(a0, alpha, beta, v, steps)[2][-1]
+        a = np.array([a1, a2])
+
+        # Comme l'intégration numérique ne arrête un pas avant u=1 (t=infty), on
+        # fait un pas RK2 (on ne peut pas faire RK4, car cela nécessite un calcul
+        # à u+h, qui est à u=1, donc a_dot diverge
+        h = 1/steps
+        u = 1 - h
+
+        k1 = h * a_dot_pos(u, a, alpha, beta, v)
+        k2 = h * a_dot_pos(u, a+k1/2, alpha, beta, v)
+
+        a += k2
+
+        p2[i] = np.abs(a[1])**2
+
+    return p2
+
+
 def main():
-    a = a_num(100, [1, 0], 1, 0.5, 1)
+    a = a_num([1, 0], 1, 0.5, 1, 100)
 
     t = np.real(a[0])
     a1 = a[1]

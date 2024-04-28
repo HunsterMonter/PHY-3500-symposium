@@ -37,7 +37,7 @@ def main():
     a2_delta = []
 
     for step in steps:
-        a_num = num.a_num(step, a0_num, alpha, beta, delta_v)
+        a_num = num.a_num(a0_num, alpha, beta, delta_v, step)
         t_num.append(np.real(a_num[0]))
         a1_num.append(a_num[1])
         a2_num.append(a_num[2])
@@ -49,6 +49,7 @@ def main():
 
     # Figure avec sliders ajustables
     plt.style.use("ggplot")
+    #plt.style.use("https://raw.githubusercontent.com/HunsterMonter/ggplot-dark/main/ggplot_dark.mplstyle")
     fig = plt.figure(layout="constrained", figsize=(9.6, 7.2))
 
     # Division du graphique
@@ -143,6 +144,7 @@ def main():
     ax20.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
     ax30.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
 
+    fig.suptitle("Erreur de la solution numérique sur la solution analytique.", wrap=True)
     ax10.legend(loc="upper right")
     ax11.legend(loc="upper right")
 
@@ -169,7 +171,7 @@ def main():
         a2_an = an.a2(t_an, alpha+1j*alpha_im, beta, delta_v, n_max, a0)
 
         for i, step in enumerate(steps):
-            a_num = num.a_num(step, a0_num, alpha, beta, delta_v)
+            a_num = num.a_num(a0_num, alpha, beta, delta_v, step)
             a1_num[i] = a_num[1]
             a2_num[i] = a_num[2]
 
